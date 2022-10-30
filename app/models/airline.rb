@@ -1,7 +1,7 @@
 class Airline < ApplicationRecord
   has_many :reviews
 
-  before_create :slugify
+  before_save :slugify
 
   # When we create a new airline, we will slugify or create a url safe slug
   def slugify

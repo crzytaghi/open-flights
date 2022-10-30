@@ -3,29 +3,40 @@ module Api
     class ReviewsController < ApplicationController
 
       def create
-        review = Review.new(review_params)
+        begin
+          @review = Review.create(review_params)
 
-        if review.save
-          render json: ReviewSerializer.new(review).serialized_json
-        else
-          render json: { error: review.errors.messages }, status: 422
+          raise "reviews not found, errors: #{@reviews.errors.messages}" unless @reviews
+          render json: ReviewBlueprint.render(@reviews)
+        rescue => err
+          render json: { success: false, error: err }
         end
       end
 
       def destroy
-        review = Review.find_by(params[:id])
+        begin
+          @review.destroy
 
-        if review.destroy
-          head :no_content
-        else
-          render json: { error: review.errors.messages }, status: 422
+          raise "unable to delete review, errors: #{@review.errors.messages}" unless @review.valid?
+          render json: ReviewBlueprint.render(@review)
+        rescue => err
+          render json: { success: false, error: err }
         end
       end
 
       private
+      def set_review
+        @review = Review.find(params[:id])
+      end
 
       def review_params
-        params.require(review).permit(:title, :description, :score, :airline_id)
+        params.require(review).permit(
+          :id,
+          :title, 
+          :description, 
+          :score, 
+          :airline_id
+        )
       end
     end
   end

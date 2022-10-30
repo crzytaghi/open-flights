@@ -1,56 +1,80 @@
 module Api
   module V1
-    class ReviewsController < ApplicationController
-      def index
-        airlines = Airline.all
+    class AirlinesController < ApplicationController
+      before_action :set_airline, only: [:show, :update, :destroy]
+      skip_before_action :verify_authenticity_token
 
-        AirlineSerializer.new(airlines, options).serialized_json
+      def index
+        begin
+          @airlines = Airline.all
+
+          raise "airlines not found, errors: #{@airlines.errors}" unless @airlines
+          # render json: AirlineSerializer.new(airlines, options).serializable_hash
+          render json: AirlineBlueprint.render(@airlines, options)
+        rescue => err
+          render json: { success: false, error: err }
+        end
       end
 
       def show
-        airline = Airline.find_by(slug: params[:slug])
-
-        AirlineSerializer.new(airline, options).serialized_json
+        begin
+          raise "airline not found, errors: #{@airline.errors.messages}" unless @airline
+          render json: AirlineBlueprint.render(@airline)
+        rescue => err
+          render json: { success: false, error: err }
+        end
       end
 
       def create
-        airline = Airline.new(airline_params)
+        begin
+          @airline = Airline.create(airline_params)
 
-        if airline.save
-          render json: AirlineSerializer.new(airline).serialized_json
-        else
-          render json: { error: airline.errors.messages }, status: 422
+          raise "airline not found, errors: #{@airline.errors.messages}" unless @airline.valid?
+          render json: AirlineBlueprint.render(@airline)
+        rescue => err
+          render json: { success: false, error: err }
         end
       end
 
       def update
-        airline = Airline.new(airline_params)
-
-        if airline.update(airline_params)
-          render json: AirlineSerializer.new(airline, options).serialized_json
-        else
-          render json: { error: airline.errors.messages }, status: 422
+        begin
+          @airline.update(airline_params)
+          raise "unable to update airline, errors: #{@airline.errors.messages}" unless @airline.valid?
+          render json: AirlineBlueprint.render(@airline, options)
+        rescue => err
+          render json: { success: false, error: err }
         end
       end
 
       def destroy
-        airline = Airline.new(airline_params)
+        begin
+          @airline.destroy
 
-        if airline.destroy
-          head :no_content
-        else
-          render json: { error: airline.errors.messages }, status: 422
+          raise "unable to delete airline, errors: #{@airline.errors.messages}" unless @airline.valid?
+          render json: AirlineBlueprint.render(@airline, options)
+        rescue => err
+          render json: { success: false, error: err }
         end
       end
 
       private
 
-      def airline_params
-        params.require(:airline).permit(:name, :image_url)
+      def set_airline
+        @airline = Airline.find(params[:id])
       end
 
-      # Want to ensure that we are included any review data in the json payload by structuring the data as a compount document. 
+      def airline_params
+        params.require(:airline).permit(
+          :id, 
+          :name, 
+          :image_url
+        )
+      end
+
+      # Want to ensure that we are including any review data in the json payload by structuring the data as a compound document. 
       def options
+        # Allows us to pass in an optional options hash that will be returned when passed into the render method
+        # instance variable @options
         @options ||= { include: %i[reviews]}
       end
     end

@@ -6,7 +6,7 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       # sets the primary paramter as the slug value as opposed to the :id value of the resource
-      resources :airlines, param: :slug
+      resources :airlines
       resources :reviews, only: [:create, :destroy]
     end
   end
